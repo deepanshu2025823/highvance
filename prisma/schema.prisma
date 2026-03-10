@@ -1,0 +1,98 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      String   @default("ADMIN")
+  forms     Form[]
+  agents    Agent[]  
+  campaigns Campaign[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Contact {
+  id        String   @id @default(cuid())
+  name      String
+  email     String?  @unique
+  phone     String?
+  source    String   @default("MANUAL")
+  calls     Call[]   // Lead ki call history store karne ke liye
+  memories  Memory[] // AI ki specific lead ke saath memory
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Form {
+  id           String   @id @default(cuid())
+  name         String
+  fields       Json
+  accentColor  String   @default("#0f172a")
+  borderRadius String   @default("1.5rem")
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Agent {
+  id           String   @id @default(cuid())
+  name         String
+  goal         String   // appointment_booking, support, qualifying
+  sttProvider  String   @default("deepgram")
+  llmProvider  String   @default("gpt-4o")
+  ttsProvider  String   // cartesia, eleven_labs
+  telephony    String   // signalwire, vobiz
+  followUpPlan Json     // Array of follow-up steps
+  hasMemory    Boolean  @default(true)
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  calls        Call[]   // Agent ki saari calls ka data
+}
+
+model Call {
+  id              String   @id @default(cuid())
+  status          String   // completed, failed, busy
+  duration        Int      @default(0) // seconds mein
+  result          String?  // appointment_booked, interested, not_interested
+  reason          String?  // Agar appointment nahi hui toh kyun?
+  tags            Json?    // ["high_intent", "follow_up_needed"]
+  transcript      Json?    // Poori conversation ka text
+  agentId         String
+  agent           Agent    @relation(fields: [agentId], references: [id])
+  contactId       String
+  contact         Contact  @relation(fields: [contactId], references: [id])
+  createdAt       DateTime @default(now())
+}
+
+model Memory {
+  id          String   @id @default(cuid())
+  context     String   @db.Text // AI ne kya sikha is lead ke baare mein
+  contactId   String
+  contact     Contact  @relation(fields: [contactId], references: [id])
+  updatedAt   DateTime @updatedAt
+}
+
+model Campaign {
+  id          String   @id @default(cuid())
+  name        String
+  type        String   // AI Voice, WhatsApp, Email
+  status      String   @default("Draft") // Active, Paused, Draft
+  progress    Int      @default(0)
+  sent        Int      @default(0)
+  total       Int      @default(1000)
+  conversion  String   @default("0.0%")
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
