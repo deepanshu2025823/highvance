@@ -1,5 +1,7 @@
 // app/api/agents/setup/route.ts
 
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
